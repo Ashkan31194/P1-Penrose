@@ -2,38 +2,16 @@ clc;
 clear;
 close all
 
-n=5; %enter the dimension of the space
-m=2; %enter the dimesion of the projection space
-% u1 and u2 are the unit vectors of the projection vector - the total
-% number of uis mus be equal to m
-u1=sqrt(2/5)*[cos(0);cos(2*pi*(1/5));cos(2*pi*(2/5));cos(2*pi*(3/5));cos(2*pi*(4/5))];
-u2=sqrt(2/5)*[sin(0);sin(2*pi*(1/5));sin(2*pi*(2/5));sin(2*pi*(3/5));sin(2*pi*(4/5))];
-u3=sqrt(2/5)*[cos(0);cos(4*pi*(1/5));cos(4*pi*(2/5));cos(4*pi*(3/5));cos(4*pi*(4/5))];
-u4=sqrt(2/5)*[sin(0);sin(4*pi*(1/5));sin(4*pi*(2/5));sin(4*pi*(3/5));sin(4*pi*(4/5))];
-u5=sqrt(1/5)*[1;1;1;1;1];
-%t=[0.3;0.3;0.3;0.3;0.3]; %enter the t vector which moves the unit hypercube to point t
-
-
-u1=u1/sqrt(dot(u1,u1)); %normalize u1
-u2=u2/sqrt(dot(u2,u2)); %normalize u2
-u3=u3/sqrt(dot(u3,u3)); %normalize u3
-u4=u4/sqrt(dot(u4,u4)); %normalize u4
-u5=u5/sqrt(dot(u5,u5)); %normalize u5
-
-PL=u1*u1'+u2*u2'; %Projection Matrix - total number of sums=m
-QL=eye(n)-PL; 
-
-
+n=5; 
 D=[[cos(0);cos(2*pi*(1/5));cos(2*pi*(2/5));cos(2*pi*(3/5));cos(2*pi*(4/5))] [sin(0);sin(2*pi*(1/5));sin(2*pi*(2/5));sin(2*pi*(3/5));sin(2*pi*(4/5))]];
 T=[[cos(0);cos(4*pi*(1/5));cos(4*pi*(2/5));cos(4*pi*(3/5));cos(4*pi*(4/5))] [sin(0);sin(4*pi*(1/5));sin(4*pi*(2/5));sin(4*pi*(3/5));sin(4*pi*(4/5))] [1;1;1;1;1]];
+Offset=5;%the width between periodic Box and search space (5 is good)
+order1=5;%enter the value of approximation for golen ratio in x direction Lx_Box=5*(taw^order1)
+order2=8;%enter the value of approximation for golen ratio in y direction Ly_Box=(2*sin(pi/5))*(taw^(order2+1))
+
 n1=norm(T(:,1));
 n2=norm(T(:,2));
 n3=norm(T(:,3));
-%D=[u1 u2];
-%T=[u3 u4 u5];
-%D=round(D,1);
-order1=6; %input variable of fibonacci estimation 1
-order2=8; %input variable of fibonacci estimation 2
 p1=fibonacci(order1+1);
 q1=fibonacci(order1);
 p2=fibonacci(order2+1);
@@ -46,43 +24,37 @@ L = linspace(0,2.*pi,11);
 xv = sin(L)';
 yv = cos(L)';
 taw=(1+sqrt(5))/2;
-xv=xv*(((p1/q1)+2)/2)*1.05;
-yv=yv*(((p2/q2)+2)/2)*1.05;
+xv=xv*(((p1/q1)+2)/2)*1.05;% be careful about the coefficient 1.05 (it might needs some modification case by case_1.05 works for most cases
+yv=yv*(((p2/q2)+2)/2)*1.05;% be careful about the coefficient 1.05 (it might needs some modification case by case_1.05 works for most cases
 
-Period1=[1 0]*5*(taw^order1); %x length of box
-Period2=[0 2*sin(pi/5)]*(taw^(order2+1)); %y length of box
+Period1=[1 0]*5*(taw^order1);
+Period2=[0 2*sin(pi/5)]*(taw^(order2+1));
 AA=[1 0];
 AA(1)=AA(1)-Period1(1)/2;
 AA(2)=AA(2)-Period2(2)/2;
 
-figure(100)
-rectangle('Position',[AA Period1(1) Period2(2)])
+Dx_d=AA(1);
+Ux_u=AA(1)+Period1(1);
+Dy_d=AA(2);
+Uy_u=AA(2)+Period2(2);
 
-figure(14)
-plot(xv,yv) % polygon
-axis([-2.5 2.5 -2.5 2.5])
-
-
-L_u=30;
-L_d=-30;
+Lx_d=Dx_d-Offset;
+Lx_u=Ux_u+Offset;
+Ly_d=Dy_d-Offset;
+Ly_u=Uy_u+Offset;
 
 S=[1;0;0;0;0];
 QS=T'*S;
 in  = inpolygon(QS(1), QS(2),xv,yv);
 
 
-
-List=[];
 tic
-List = Traverse( S,T,n,L_d,L_u,xv,yv,List);
+List=[];
+List = Traverse( S,T,D,n,Lx_d,Lx_u,Ly_d,Ly_u,xv,yv,List);
 toc
 
 PList=D'*List';
 PList=PList';
-
-figure(2)
-scatter(PList(:,1),PList(:,2),'filled','sizedata',8)
-axis([L_d L_u L_d L_u])
 
 DD = pdist2(List,List,'euclidean');
 
@@ -178,14 +150,38 @@ for i=2:size(reqcyc,1)
     pgn1=polyshape(SS(:,1)',SS(:,2)');
     pgn=union(pgn,pgn1);
 end
-%[INPOLY, ONPOLY]=isinterior(pgn,PList(:,1),PList(:,2));
-%TFin=INPOLY-ONPOLY;
 TFin=isinterior(pgn,PList(:,1),PList(:,2));
 nds=find(TFin==1);
 PList(nds,:)=[];
 DD(nds,:)=[];
 DD(:,nds)=[];
-      
+
+Grr=graph(DD);
+cycles1 = allcycles(Grr,'MinCycleLength',4,'MaxCycleLength',4);
+deldel=[];
+counter=1;
+for i=1:size(cycles1,1)
+    fourP=cell2mat(cycles1(i));
+    AAA=sum(DD(fourP,:),2);
+    chch=find(AAA==2);
+    cccc=find(AAA==5);
+    if size(chch,1)==2 && size(cccc,1)==2
+         deldel(2*counter-1:2*counter)=fourP(chch);
+        counter=counter+1;
+    end
+end
+PList(deldel,:)=[];
+DD(deldel,:)=[];
+DD(:,deldel)=[];
+
+Grrr=graph(DD);
+[bins,binsizes]=conncomp(Grrr);
+[~,indx]=max(binsizes);
+delCC=find(bins~=indx);
+PList(delCC,:)=[];
+DD(delCC,:)=[];
+DD(:,delCC)=[]; 
+
 toc
  figure(3)
  gplot(DD,PList,'k-')
@@ -209,8 +205,7 @@ rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
 
 xvv=[AA(1);AA(1)+Period1(1);AA(1)+Period1(1);AA(1);AA(1)];
 yvv=[AA(2);AA(2);AA(2)+Period2(2);AA(2)+Period2(2);AA(2)];
-figure(16)
-plot(xvv,yvv) % polygon
+
 inn  = inpolygon(PList(:,1), PList(:,2),xvv,yvv);
 
 PBList=PList(inn,:);
@@ -219,7 +214,7 @@ figure(6)
 scatter(PBList(:,1),PBList(:,2),'filled')
 hold on
 rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
-%scatter(ExtraList(:,1),ExtraList(:,2),'filled','r')
+scatter(ExtraList(:,1),ExtraList(:,2),'filled','r')
 
 figure(7)
 gplot(DD(inn,inn),PList(inn,:),'k-')
@@ -237,4 +232,4 @@ rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
 
 
 
-%save('P1.mat')
+save('P1.mat')

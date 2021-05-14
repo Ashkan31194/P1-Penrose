@@ -6,9 +6,9 @@ n=5;
 D=[[cos(0);cos(2*pi*(1/5));cos(2*pi*(2/5));cos(2*pi*(3/5));cos(2*pi*(4/5))] [sin(0);sin(2*pi*(1/5));sin(2*pi*(2/5));sin(2*pi*(3/5));sin(2*pi*(4/5))]];
 T=[[cos(0);cos(4*pi*(1/5));cos(4*pi*(2/5));cos(4*pi*(3/5));cos(4*pi*(4/5))] [sin(0);sin(4*pi*(1/5));sin(4*pi*(2/5));sin(4*pi*(3/5));sin(4*pi*(4/5))] [1;1;1;1;1]];
 Offset=5;%the width between periodic Box and search space (5 is good)
-order1=5;%enter the value of approximation for golen ratio in x direction Lx_Box=5*(taw^order1)
+order1=6;%enter the value of approximation for golen ratio in x direction Lx_Box=5*(taw^order1)
 order2=8;%enter the value of approximation for golen ratio in y direction Ly_Box=(2*sin(pi/5))*(taw^(order2+1))
-
+%if you want a box with same lengths in x and y directions the following relation must holds: order2=order1+2
 n1=norm(T(:,1));
 n2=norm(T(:,2));
 n3=norm(T(:,3));
@@ -137,7 +137,7 @@ for i=1:size(cycles2,1)
         counter=counter+1;
     end
 end
-
+if size(reqcyc,1)~=0
 tenP=cell2mat(cycles2(reqcyc(1)));
 Cords=PList(tenP,:);
 SS=0.99*(Cords-mean(Cords))+mean(Cords);
@@ -155,7 +155,7 @@ nds=find(TFin==1);
 PList(nds,:)=[];
 DD(nds,:)=[];
 DD(:,nds)=[];
-
+end
 Grr=graph(DD);
 cycles1 = allcycles(Grr,'MinCycleLength',4,'MaxCycleLength',4);
 deldel=[];
@@ -181,6 +181,34 @@ delCC=find(bins~=indx);
 PList(delCC,:)=[];
 DD(delCC,:)=[];
 DD(:,delCC)=[]; 
+
+FG=graph(DD);
+cycles5 = allcycles(FG,'MinCycleLength',5,'MaxCycleLength',5);
+reqcyc5=[];
+NewList=[];
+counter=1;
+for i=1:size(cycles5,1)
+    fiveP=cell2mat(cycles5(i));
+    Cords=PList(fiveP,:);
+    check=checkConvex(Cords(:,1)',Cords(:,2)');
+    if check==1
+        NewList(counter,:)=mean(PList(fiveP,:));
+        reqcyc5(counter,:)=i;
+        counter=counter+1;
+    end
+end
+DDnew=zeros(size(NewList,1));
+DDSS=cell2mat(cycles5(reqcyc5));
+%scatter(NewList(:,1),NewList(:,2),'filled')
+for i=1:size(NewList,1)
+    for j=i+1:size(NewList,1)
+        if size(intersect(DDSS(i,:),DDSS(j,:)),2)==2
+            DDnew(i,j)=1;
+            DDnew(j,i)=1;
+        end
+    end
+end
+
 
 toc
  figure(3)
@@ -229,7 +257,40 @@ plot(XX,YY,'-mo',...
                 'MarkerSize',4);
 hold on
 rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+figure(9)
+gplot(DDnew,NewList,'k-')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+[XN,YN]=gplot(DDnew,NewList);
+figure(10)
+plot(XN,YN,'-mo',...
+                'LineWidth',1,...
+                'MarkerEdgeColor','k',...
+                'MarkerFaceColor',[.49 1 .63],...
+                'MarkerSize',4);
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+iinn  = inpolygon(NewList(:,1), NewList(:,2),xvv,yvv);
 
-
+PBnewList=NewList(iinn,:);
+ExtranewList=NewList(~iinn,:);
+figure(11)
+gplot(DDnew(iinn,iinn),NewList(iinn,:),'k-')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+[XXN,YYN]=gplot(DDnew(iinn,iinn),NewList(iinn,:));
+figure(12)
+plot(XXN,YYN,'-mo',...
+                'LineWidth',1,...
+                'MarkerEdgeColor','k',...
+                'MarkerFaceColor',[.49 1 .63],...
+                'MarkerSize',4);
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+figure(13)
+scatter(PBnewList(:,1),PBnewList(:,2),'filled')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+scatter(ExtranewList(:,1),ExtranewList(:,2),'filled','r')
 
 save('P1.mat')

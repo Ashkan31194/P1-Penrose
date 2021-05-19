@@ -543,7 +543,6 @@ for i=1:size(DDnew,1)
 end
 
 
-save('P1.mat')
 TypeP = ones(size(PListinBOX,1),1);
 outptFile = fopen('out1.txt','W');
 fprintf(outptFile,'%d Vertices\n\n%d Edges\n\n%d Vertex types\n\nBOX\n\n%f %f xlo xhi\n%f %f ylo yhi \n\n',...
@@ -563,3 +562,5 @@ fprintf(outptFile1,'%d %d %f %f\n',[1:size(NewListinBOX,1);TypePN';NewListinBOX(
 fprintf(outptFile1,'\nEdges\n\n');
 fprintf(outptFile1,'%d %d %d %d %d\n',[1:size(PNEdges,1);PNEdges(:,1)';PNEdges(:,2)';PNEdges(:,3)';PNEdges(:,4)']);
 fclose(outptFile1);
+
+save('P1.mat')

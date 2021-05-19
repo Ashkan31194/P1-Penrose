@@ -5,9 +5,9 @@ close all
 n=5; 
 D=[[cos(0);cos(2*pi*(1/5));cos(2*pi*(2/5));cos(2*pi*(3/5));cos(2*pi*(4/5))] [sin(0);sin(2*pi*(1/5));sin(2*pi*(2/5));sin(2*pi*(3/5));sin(2*pi*(4/5))]];
 T=[[cos(0);cos(4*pi*(1/5));cos(4*pi*(2/5));cos(4*pi*(3/5));cos(4*pi*(4/5))] [sin(0);sin(4*pi*(1/5));sin(4*pi*(2/5));sin(4*pi*(3/5));sin(4*pi*(4/5))] [1;1;1;1;1]];
-Offset=5;%the width between periodic Box and search space (5 is good)
-order1=6;%enter the value of approximation for golen ratio in x direction Lx_Box=5*(taw^order1)
-order2=8;%enter the value of approximation for golen ratio in y direction Ly_Box=(2*sin(pi/5))*(taw^(order2+1))
+Offset=6;%the width between periodic Box and search space (5 is good)
+order1=4;%enter the value of approximation for golen ratio in x direction Lx_Box=5*(taw^order1)
+order2=6;%enter the value of approximation for golen ratio in y direction Ly_Box=(2*sin(pi/5))*(taw^(order2+1))
 %if you want a box with same lengths in x and y directions the following relation must holds: order2=order1+2
 n1=norm(T(:,1));
 n2=norm(T(:,2));
@@ -292,5 +292,274 @@ scatter(PBnewList(:,1),PBnewList(:,2),'filled')
 hold on
 rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
 scatter(ExtranewList(:,1),ExtranewList(:,2),'filled','r')
+%save('P1.mat')
+
+
+
+
+
+xvv=[AA(1);AA(1)+Period1(1);AA(1)+Period1(1);AA(1);AA(1)];
+yvv=[AA(2);AA(2);AA(2)+Period2(2);AA(2)+Period2(2);AA(2)];
+epsln=0.01;
+PXout=[AA(1)-epsln;AA(1)+Period1(1)+epsln;AA(1)+Period1(1)+epsln;AA(1)-epsln;AA(1)-epsln];
+PYout=[AA(2)-epsln;AA(2)-epsln;AA(2)+Period2(2)+epsln;AA(2)+Period2(2)+epsln;AA(2)-epsln];
+PXin=[AA(1)+epsln;AA(1)+Period1(1)-epsln;AA(1)+Period1(1)-epsln;AA(1)+epsln;AA(1)+epsln];
+PYin=[AA(2)+epsln;AA(2)+epsln;AA(2)+Period2(2)-epsln;AA(2)+Period2(2)-epsln;AA(2)+epsln];
+
+inPin=inpolygon(PList(:,1), PList(:,2),PXin,PYin);
+inPout=inpolygon(PList(:,1), PList(:,2),PXout,PYout);
+inPboundary=logical(inPout-inPin);
+
+
+PListin=PList(inPin,:);
+PListboundary=PList(inPboundary,:);
+figure(14)
+scatter(PListin(:,1),PListin(:,2),'filled')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+scatter(PListboundary(:,1),PListboundary(:,2),'filled','r')
+
+
+FALeft=find(PList(:,1)>AA(1)-epsln & PList(:,1)<AA(1)+epsln);
+FARight=find(PList(:,1)>AA(1)+Period1(1)-epsln & PList(:,1)<AA(1)+Period1(1)+epsln);
+if size(FARight,1)<size(FALeft,1)
+    change=PList(FARight,:)-Period1;
+    UR=PList(FALeft,:);
+    delD=[];
+    counter=1;
+    for i=1:size(UR,1)
+        TFT=find(abs(UR(i,2)-change(:,2))<1e-5);
+        if size(TFT,1)<1
+            delD(counter,:)=i;
+            counter=counter+1;
+        end
+        inPboundary(FARight,:)=0;
+        inPboundary(FALeft(delD),:)=0;   
+    end
+    
+elseif size(FARight,1)>size(FALeft,1)
+    inPboundary(FARight,:)=0;
+else
+    inPboundary(FARight,:)=0;
+end
+
+FADown=find(PList(:,2)>AA(2)-epsln & PList(:,2)<AA(2)+epsln);
+FAUp=find(PList(:,2)>AA(2)+Period2(2)-epsln & PList(:,2)<AA(2)+Period2(2)+epsln);
+if size(FADown,1)<size(FAUp,1)
+    inPboundary(FAUp,:)=0;
+elseif size(FADown,1)>size(FAUp,1)
+    change1=PList(FAUp,:)-Period2;
+    UR1=PList(FADown,:);
+    delD1=[];
+    counter=1;
+    for i=1:size(UR1,1)
+        TFT1=find(abs(UR1(i,2)-change1(:,2))<1e-5);
+        if size(TFT1,1)<1
+            delD1(counter,:)=i;
+            counter=counter+1;
+        end
+        inPboundary(FAUp,:)=0;   
+        inPboundary(FAdown(delD1),:)=0;   
+    end
+else
+    inPboundary(FAUp,:)=0;
+end
+
+inPBOX=logical(inPin+inPboundary);
+PListinBOX=PList(inPBOX,:);
+PListoutBOX=PList(~inPBOX,:);
+figure(15)
+scatter(PListinBOX(:,1),PListinBOX(:,2),'filled')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+scatter(PListoutBOX(:,1),PListoutBOX(:,2),'filled','r')
+
+effEdge=find(PList(:,1)>AA(1)-epsln & PList(:,2)>AA(2)-epsln);
+ineffEdge=zeros(size(PList,1),1);
+ineffEdge(effEdge)=1;
+ineffEdge=logical(ineffEdge);
+infEdge=and(ineffEdge,~inPBOX);
+figure(16)
+scatter(PList(inPBOX,1),PList(inPBOX,2),'filled','b')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+scatter(PList(infEdge,1),PList(infEdge,2),'filled','r')
+
+PEdges=[];
+counter=1;
+for i=1:size(DD,1)
+    for j=i+1:size(DD,1)
+       if DD(i,j)==1 && inPBOX(i)==1
+           iPer=find(abs(PListinBOX(:,1)-PList(i,1))<1e-5 & abs(PListinBOX(:,2)-PList(i,2))<1e-5);
+           if inPBOX(j)==1
+               jPer=find(abs(PListinBOX(:,1)-PList(j,1))<1e-5 & abs(PListinBOX(:,2)-PList(j,2))<1e-5);
+               PEdges(counter,:)=[iPer jPer 0 0];
+               counter=counter+1;
+           elseif inPBOX(j)==0 && infEdge(j)==1
+               C1=floor((PList(j,1)-AA(1))/Period1(1));
+               C2=floor((PList(j,2)-AA(2))/Period2(2));
+               if abs((PList(j,2)-AA(2))/Period2(2)-(C2+1))<1e-5 
+                   C2=C2+1;
+               end
+               if abs((PList(j,2)-AA(2))/Period2(2)-(C2-1))<1e-5
+                   C2=C2-1;
+               end
+               if abs((PList(j,1)-AA(1))/Period1(1)-(C1+1))<1e-5
+                   C1=C1+1;
+               end
+               if abs((PList(j,1)-AA(1))/Period1(1)-(C1-1))<1e-5
+                   C1=C1-1;
+               end 
+
+               W1=PList(j,1)-C1*Period1(1);
+               W2=PList(j,2)-C2*Period2(2);
+               WFW=find(abs(PListinBOX(:,1)-W1)<1e-5 & abs(PListinBOX(:,2)-W2)<1e-5);
+               PEdges(counter,:)=[iPer WFW C1 C2];
+               counter=counter+1;
+           end
+       end
+    end
+end
+
+
+
+
+
+
+
+inPNin=inpolygon(NewList(:,1), NewList(:,2),PXin,PYin);
+inPNout=inpolygon(NewList(:,1), NewList(:,2),PXout,PYout);
+inPNboundary=logical(inPNout-inPNin);
+
+
+NewListin=NewList(inPNin,:);
+NewListboundary=NewList(inPNboundary,:);
+figure(17)
+scatter(NewListin(:,1),NewListin(:,2),'filled')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+scatter(NewListboundary(:,1),NewListboundary(:,2),'filled','r')
+
+
+FANLeft=find(NewList(:,1)>AA(1)-epsln & NewList(:,1)<AA(1)+epsln);
+FANRight=find(NewList(:,1)>AA(1)+Period1(1)-epsln & NewList(:,1)<AA(1)+Period1(1)+epsln);
+if size(FANRight,1)<size(FANLeft,1)
+    changeN=NewList(FANRight,:)-Period1;
+    URN=NewList(FANLeft,:);
+    delDN=[];
+    counter=1;
+    for i=1:size(URN,1)
+        TFT=find(abs(URN(i,2)-changeN(:,2))<1e-5);
+        if size(TFT,1)<1
+            delDN(counter,:)=i;
+            counter=counter+1;
+        end
+        inPNboundary(FANRight,:)=0;
+        inPNboundary(FANLeft(delDN),:)=0;   
+    end
+    
+elseif size(FANRight,1)>size(FANLeft,1)
+    inPNboundary(FANRight,:)=0;
+else
+    inPNboundary(FANRight,:)=0;
+end
+
+FANDown=find(NewList(:,2)>AA(2)-epsln & NewList(:,2)<AA(2)+epsln);
+FANUp=find(NewList(:,2)>AA(2)+Period2(2)-epsln & NewList(:,2)<AA(2)+Period2(2)+epsln);
+if size(FANDown,1)<size(FANUp,1)
+    inPNboundary(FANUp,:)=0;
+elseif size(FANDown,1)>size(FANUp,1)
+    changeN1=NewList(FANUp,:)-Period2;
+    URN1=NewList(FANDown,:);
+    delDN1=[];
+    counter=1;
+    for i=1:size(URN1,1)
+        TFT1=find(abs(URN1(i,2)-changeN1(:,2))<1e-5);
+        if size(TFT1,1)<1
+            delDN1(counter,:)=i;
+            counter=counter+1;
+        end
+        inPNboundary(FANUp,:)=0;   
+        inPNboundary(FANDown(delDN1),:)=0;   
+    end
+else
+    inPNboundary(FANUp,:)=0;
+end
+
+inPNBOX=logical(inPNin+inPNboundary);
+NewListinBOX=NewList(inPNBOX,:);
+NewListoutBOX=NewList(~inPNBOX,:);
+figure(18)
+scatter(NewListinBOX(:,1),NewListinBOX(:,2),'filled')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+scatter(NewListoutBOX(:,1),NewListoutBOX(:,2),'filled','r')
+
+effNEdge=find(NewList(:,1)>AA(1)-epsln & NewList(:,2)>AA(2)-epsln);
+ineffNEdge=zeros(size(NewList,1),1);
+ineffNEdge(effNEdge)=1;
+ineffNEdge=logical(ineffNEdge);
+infNEdge=and(ineffNEdge,~inPNBOX);
+figure(19)
+scatter(NewList(inPNBOX,1),NewList(inPNBOX,2),'filled','b')
+hold on
+rectangle('Position',[AA Period1(1) Period2(2)],'linewidth',2)
+scatter(NewList(infNEdge,1),NewList(infNEdge,2),'filled','r')
+
+PNEdges=[];
+counter=1;
+for i=1:size(DDnew,1)
+    for j=i+1:size(DDnew,1)
+       if DDnew(i,j)==1 && inPNBOX(i)==1
+           iPer=find(abs(NewListinBOX(:,1)-NewList(i,1))<1e-5 & abs(NewListinBOX(:,2)-NewList(i,2))<1e-5);
+           if inPNBOX(j)==1
+               jPer=find(abs(NewListinBOX(:,1)-NewList(j,1))<1e-5 & abs(NewListinBOX(:,2)-NewList(j,2))<1e-5);
+               PNEdges(counter,:)=[iPer jPer 0 0];
+               counter=counter+1;
+           elseif inPNBOX(j)==0 && infNEdge(j)==1
+               C1=floor((NewList(j,1)-AA(1))/Period1(1));
+               C2=floor((NewList(j,2)-AA(2))/Period2(2));
+               if abs((NewList(j,2)-AA(2))/Period2(2)-(C2+1))<1e-5 
+                   C2=C2+1;
+               end
+               if abs((NewList(j,2)-AA(2))/Period2(2)-(C2-1))<1e-5
+                   C2=C2-1;
+               end
+               if abs((NewList(j,1)-AA(1))/Period1(1)-(C1+1))<1e-5
+                   C1=C1+1;
+               end
+               if abs((NewList(j,1)-AA(1))/Period1(1)-(C1-1))<1e-5
+                   C1=C1-1;
+               end 
+
+               W1=NewList(j,1)-C1*Period1(1);
+               W2=NewList(j,2)-C2*Period2(2);
+               WFW=find(abs(NewListinBOX(:,1)-W1)<1e-5 & abs(NewListinBOX(:,2)-W2)<1e-5);
+               PNEdges(counter,:)=[iPer WFW C1 C2];
+               counter=counter+1;
+           end
+       end
+    end
+end
+
 
 save('P1.mat')
+TypeP = ones(size(PListinBOX,1),1);
+outptFile = fopen('out1.txt','W');
+fprintf(outptFile,'%d Vertices\n\n%d Edges\n\n%d Vertex types\n\nBOX\n\n%f %f xlo xhi\n%f %f ylo yhi \n\n',...
+                    size(PListinBOX,1),size(PEdges,1),size(unique(TypeP),1),AA(1),AA(1)+Period1(1),AA(2),AA(2)+Period2(2));
+fprintf(outptFile,'Vertices\n\n');
+fprintf(outptFile,'%d %d %f %f\n',[1:size(PListinBOX,1);TypeP';PListinBOX(:,1)';PListinBOX(:,2)']);
+fprintf(outptFile,'\nEdges\n\n');
+fprintf(outptFile,'%d %d %d %d %d\n',[1:size(PEdges,1);PEdges(:,1)';PEdges(:,2)';PEdges(:,3)';PEdges(:,4)']);
+fclose(outptFile);
+
+TypePN = ones(size(NewListinBOX,1),1);
+outptFile1 = fopen('out2.txt','W');
+fprintf(outptFile1,'%d Vertices\n\n%d Edges\n\n%d Vertex types\n\nBOX\n\n%f %f xlo xhi\n%f %f ylo yhi \n\n',...
+                    size(NewListinBOX,1),size(PNEdges,1),size(unique(TypePN),1),AA(1),AA(1)+Period1(1),AA(2),AA(2)+Period2(2));
+fprintf(outptFile1,'Vertices\n\n');
+fprintf(outptFile1,'%d %d %f %f\n',[1:size(NewListinBOX,1);TypePN';NewListinBOX(:,1)';NewListinBOX(:,2)']);
+fprintf(outptFile1,'\nEdges\n\n');
+fprintf(outptFile1,'%d %d %d %d %d\n',[1:size(PNEdges,1);PNEdges(:,1)';PNEdges(:,2)';PNEdges(:,3)';PNEdges(:,4)']);
+fclose(outptFile1);
